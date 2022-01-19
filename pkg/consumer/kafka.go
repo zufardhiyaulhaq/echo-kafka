@@ -5,18 +5,27 @@ import (
 	"github.com/zufardhiyaulhaq/echo-kafka/pkg/settings"
 )
 
-type Kafka struct {
+type KafkaConsumer struct {
+	Client   sarama.Client
 	Consumer sarama.Consumer
 }
 
-func (k Kafka) Consume(topic string) chan Information {
+func (k KafkaConsumer) Consume(topic string) chan Information {
 	information := make(chan Information)
 	partitions, _ := k.Consumer.Partitions(topic)
 
 	for _, partition := range partitions {
-		consumer, err := k.Consumer.ConsumePartition(topic, partition, sarama.OffsetOldest)
+		offset, err := k.Client.GetOffset(topic, partition, sarama.ReceiveTime)
+		if err != nil {
+			information <- Information{
+				Error: err,
+			}
 
-		if nil != err {
+			return information
+		}
+
+		consumer, err := k.Consumer.ConsumePartition(topic, partition, offset)
+		if err != nil {
 			information <- Information{
 				Error: err,
 			}
@@ -44,7 +53,7 @@ func (k Kafka) Consume(topic string) chan Information {
 	return information
 }
 
-func (k *Kafka) Close() error {
+func (k *KafkaConsumer) Close() error {
 	return k.Consumer.Close()
 }
 
@@ -56,7 +65,13 @@ func NewKafkaConsumer(settings settings.Settings) (Consumer, error) {
 		return nil, err
 	}
 
-	return &Kafka{
+	client, err := sarama.NewClient(settings.KafkaHosts, config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &KafkaConsumer{
 		Consumer: consumerClient,
+		Client:   client,
 	}, nil
 }

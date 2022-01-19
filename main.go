@@ -1,7 +1,10 @@
 package main
 
 import (
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	"github.com/rs/zerolog/log"
 	"github.com/zufardhiyaulhaq/echo-kafka/pkg/consumer"
@@ -50,6 +53,10 @@ func main() {
 		log.Info().Msg("starting kafka consumer client")
 		information := consumerClient.Consume(settings.KafkaTopic)
 
+		termChan := make(chan os.Signal)
+		signal.Notify(termChan, syscall.SIGTERM, syscall.SIGINT, os.Interrupt)
+
+		doneCh := make(chan struct{})
 		go func() {
 			for {
 				select {
@@ -59,9 +66,16 @@ func main() {
 					} else {
 						log.Info().Msgf("consuming: ", string(msg.Message))
 					}
+				case <-termChan:
+					log.Info().Msg("intrupted")
+					doneCh <- struct{}{}
 				}
+
 			}
 		}()
+		<-doneCh
+
+		wg.Done()
 	}()
 
 	wg.Wait()
