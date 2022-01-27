@@ -1,6 +1,9 @@
 package consumer
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/Shopify/sarama"
 	"github.com/zufardhiyaulhaq/echo-kafka/pkg/settings"
 )
@@ -73,5 +76,67 @@ func NewKafkaConsumer(settings settings.Settings) (Consumer, error) {
 	return &KafkaConsumer{
 		Consumer: consumerClient,
 		Client:   client,
+	}, nil
+}
+
+type KafkaConsumerGroup struct {
+	ConsumerGroup sarama.ConsumerGroup
+}
+
+func (k *KafkaConsumerGroup) Close() error {
+	return k.ConsumerGroup.Close()
+}
+
+func (k KafkaConsumerGroup) Consume(topic string) chan Information {
+	topics := []string{topic}
+	ctx := context.Background()
+
+	consumer := SaramaConsumer{
+		information: make(chan Information),
+	}
+
+	go func() {
+		for {
+			k.ConsumerGroup.Consume(ctx, topics, &consumer)
+		}
+	}()
+
+	return consumer.information
+}
+
+type SaramaConsumer struct {
+	information chan Information
+}
+
+func (consumer *SaramaConsumer) Setup(sarama.ConsumerGroupSession) error {
+	return nil
+}
+
+func (consumer *SaramaConsumer) Cleanup(sarama.ConsumerGroupSession) error {
+	return nil
+}
+
+func (consumer *SaramaConsumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	for message := range claim.Messages() {
+		fmt.Println("test")
+		consumer.information <- Information{
+			Message: string(message.Value),
+		}
+		session.MarkMessage(message, "")
+	}
+
+	return nil
+}
+
+func NewKafkaConsumerGroup(settings settings.Settings) (Consumer, error) {
+	config := sarama.NewConfig()
+
+	consumerClient, err := sarama.NewConsumerGroup(settings.KafkaHosts, settings.KafkaGroupID, config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &KafkaConsumerGroup{
+		ConsumerGroup: consumerClient,
 	}, nil
 }

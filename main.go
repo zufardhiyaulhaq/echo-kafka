@@ -25,10 +25,20 @@ func main() {
 		panic(err.Error())
 	}
 
-	log.Info().Msg("creating kafka consumer client")
-	consumerClient, err := consumer.NewKafkaConsumer(settings)
-	if err != nil {
-		panic(err.Error())
+	var consumerClient consumer.Consumer
+
+	if settings.KafkaEnableConsumerGroup {
+		log.Info().Msg("creating kafka consumer group client")
+		consumerClient, err = consumer.NewKafkaConsumerGroup(settings)
+		if err != nil {
+			panic(err.Error())
+		}
+	} else {
+		log.Info().Msg("creating kafka consumer client")
+		consumerClient, err = consumer.NewKafkaConsumer(settings)
+		if err != nil {
+			panic(err.Error())
+		}
 	}
 
 	wg := new(sync.WaitGroup)
@@ -86,7 +96,7 @@ func main() {
 			panic(err)
 		}
 
-		log.Info().Msg("closing kafka producer")
+		log.Info().Msg("closing kafka consumer")
 		if err = consumerClient.Close(); err != nil {
 			panic(err)
 		}
