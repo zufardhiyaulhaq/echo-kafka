@@ -11,6 +11,8 @@ type Settings struct {
 	KafkaTopic               string   `envconfig:"KAFKA_TOPIC", default:"echo-kafka"`
 	KafkaGroupID             string   `envconfig:"KAFKA_GROUP_ID", default:"echo-kafka"`
 	KafkaEnableConsumerGroup bool     `envconfig:"KAFKA_ENABLE_CONSUMER_GROUP", default:"false"`
+	KafkaEnableProducer      bool     `envconfig:"KAFKA_ENABLE_PRODUCER", default:"true"`
+	KafkaEnableConsumer      bool     `envconfig:"KAFKA_ENABLE_CONSUMER", default:"true"`
 }
 
 func NewSettings() (Settings, error) {

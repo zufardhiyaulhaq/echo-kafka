@@ -59,34 +59,36 @@ func main() {
 		wg.Done()
 	}()
 
-	go func() {
-		log.Info().Msg("starting kafka consumer client")
-		information := consumerClient.Consume(settings.KafkaTopic)
-
-		termChan := make(chan os.Signal)
-		signal.Notify(termChan, syscall.SIGTERM, syscall.SIGINT, os.Interrupt)
-
-		doneCh := make(chan struct{})
+	if settings.KafkaEnableConsumer {
 		go func() {
-			for {
-				select {
-				case msg := <-information:
-					if msg.Error != nil {
-						log.Info().Msgf("error consuming: ", string(msg.Error.Error()))
-					} else {
-						log.Info().Msgf("consuming: ", string(msg.Message))
+			log.Info().Msg("starting kafka consumer client")
+			information := consumerClient.Consume(settings.KafkaTopic)
+
+			termChan := make(chan os.Signal)
+			signal.Notify(termChan, syscall.SIGTERM, syscall.SIGINT, os.Interrupt)
+
+			doneCh := make(chan struct{})
+			go func() {
+				for {
+					select {
+					case msg := <-information:
+						if msg.Error != nil {
+							log.Info().Msgf("error consuming: ", string(msg.Error.Error()))
+						} else {
+							log.Info().Msgf("consuming: ", string(msg.Message))
+						}
+					case <-termChan:
+						log.Info().Msg("intrupted")
+						doneCh <- struct{}{}
 					}
-				case <-termChan:
-					log.Info().Msg("intrupted")
-					doneCh <- struct{}{}
+
 				}
+			}()
+			<-doneCh
 
-			}
+			wg.Done()
 		}()
-		<-doneCh
-
-		wg.Done()
-	}()
+	}
 
 	wg.Wait()
 

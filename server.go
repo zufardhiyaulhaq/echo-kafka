@@ -79,13 +79,19 @@ func NewHandler(settings settings.Settings, client producer.Producer) Handler {
 func (h Handler) Handle(w http.ResponseWriter, req *http.Request) {
 	value := mux.Vars(req)["key"]
 
-	err := h.client.SendMessage(h.settings.KafkaTopic, value)
-	if err != nil {
-		w.WriteHeader(http.StatusBadGateway)
-		w.Write([]byte(err.Error()))
-		return
+	if h.settings.KafkaEnableProducer {
+		err := h.client.SendMessage(h.settings.KafkaTopic, value)
+		if err != nil {
+			w.WriteHeader(http.StatusBadGateway)
+			w.Write([]byte(err.Error()))
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("success produce to kafka"))
+	} else {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("producer is disabled"))
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("success produce to kafka"))
 }
