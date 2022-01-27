@@ -2,7 +2,6 @@ package consumer
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/Shopify/sarama"
 	"github.com/zufardhiyaulhaq/echo-kafka/pkg/settings"
@@ -97,7 +96,12 @@ func (k KafkaConsumerGroup) Consume(topic string) chan Information {
 
 	go func() {
 		for {
-			k.ConsumerGroup.Consume(ctx, topics, &consumer)
+			err := k.ConsumerGroup.Consume(ctx, topics, &consumer)
+			if err != nil {
+				consumer.information <- Information{
+					Error: err,
+				}
+			}
 		}
 	}()
 
@@ -118,7 +122,6 @@ func (consumer *SaramaConsumer) Cleanup(sarama.ConsumerGroupSession) error {
 
 func (consumer *SaramaConsumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for message := range claim.Messages() {
-		fmt.Println("test")
 		consumer.information <- Information{
 			Message: string(message.Value),
 		}

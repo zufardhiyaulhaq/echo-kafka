@@ -90,15 +90,13 @@ func main() {
 
 	wg.Wait()
 
-	defer func() {
-		log.Info().Msg("closing kafka producer")
-		if err = producerClient.Close(); err != nil {
-			panic(err)
-		}
+	log.Info().Msg("closing kafka producer")
+	if err = producerClient.Close(); err != nil {
+		panic(err)
+	}
 
-		log.Info().Msg("closing kafka consumer")
-		if err = consumerClient.Close(); err != nil {
-			panic(err)
-		}
-	}()
+	log.Info().Msg("closing kafka consumer")
+	if err = consumerClient.Close(); err != nil {
+		panic(err)
+	}
 }
