@@ -4,7 +4,9 @@ import (
 	"context"
 
 	"github.com/Shopify/sarama"
+	echoproto "github.com/zufardhiyaulhaq/echo-grpc/proto"
 	"github.com/zufardhiyaulhaq/echo-kafka/pkg/settings"
+	"google.golang.org/protobuf/proto"
 )
 
 type KafkaConsumer struct {
@@ -44,9 +46,18 @@ func (k KafkaConsumer) Consume(topic string) chan Information {
 					}
 
 				case message := <-consumer.Messages():
-					information <- Information{
-						Message: string(message.Value),
+					msg := &echoproto.Message{}
+					err := proto.Unmarshal(message.Value, msg)
+					if err != nil {
+						information <- Information{
+							Error: err,
+						}
+					} else {
+						information <- Information{
+							Message: string(msg.Message),
+						}
 					}
+
 				}
 			}
 		}(topic, consumer)

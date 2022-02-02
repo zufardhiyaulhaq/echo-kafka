@@ -2,6 +2,8 @@ package producer
 
 import (
 	"github.com/Shopify/sarama"
+	"github.com/golang/protobuf/proto"
+	echoproto "github.com/zufardhiyaulhaq/echo-grpc/proto"
 	"github.com/zufardhiyaulhaq/echo-kafka/pkg/settings"
 )
 
@@ -10,13 +12,21 @@ type Kafka struct {
 }
 
 func (k *Kafka) SendMessage(topic, message string) error {
+	msg := echoproto.Message{
+		Message: message,
+	}
+
+	bytes, err := proto.Marshal(&msg)
+	if err != nil {
+		return err
+	}
 
 	producerMessage := &sarama.ProducerMessage{
 		Topic: topic,
-		Value: sarama.StringEncoder(message),
+		Value: sarama.ByteEncoder(bytes),
 	}
 
-	_, _, err := k.Producer.SendMessage(producerMessage)
+	_, _, err = k.Producer.SendMessage(producerMessage)
 	if err != nil {
 		return err
 	}
