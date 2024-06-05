@@ -1,7 +1,7 @@
 #################
 # Base image
 #################
-FROM alpine:3.12 as echo-kafka-base
+FROM alpine:3.20.0 as echo-kafka-base
 
 USER root
 
@@ -20,7 +20,7 @@ WORKDIR /home/echo-kafka
 #################
 # Builder image
 #################
-FROM golang:1.16-alpine AS echo-kafka-builder
+FROM golang:1.22-alpine AS echo-kafka-builder
 RUN apk add --update --no-cache alpine-sdk
 WORKDIR /app
 COPY . .
